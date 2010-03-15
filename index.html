@@ -16,39 +16,69 @@
         return null;
     }
     
-    var MAX = 5;
-    
-    // file:///Users/james/Desktop/nag.html?http://google.com
-    
-    var url = window.location.search.substring(1);
-    var key = encodeURIComponent(url);
-    
-    var value = getCookie(key);
-    var visits = 0;
-    var expires = new Date();
-    
-    if (value) {
-        valueParts = value.split("|");
-        visits = valueParts[0];
-        expires.setTime(valueParts[1]);
-    } else {
-        expires.setTime(expires.getTime() + (24*60*60*1000));
+    function setCookieAndRedirect (key, max) {
+        var value = getCookie(key);
+        var visits = 0;
+        var expires = new Date();
+        
+        if (value) {
+            valueParts = value.split("|");
+            visits = valueParts[0];
+            expires.setTime(valueParts[1]);
+        } else {
+            expires.setTime(expires.getTime() + (24*60*60*1000));
+        }
+        
+        var newVisits = (visits - 0) + 1;
+        if (newVisits > max) {
+            if (!confirm("You’ve visited " + decodeURIComponent(parts.url) + " " + visits + " times in the last 24 hours, are you sure you want to do it again?")) {
+                window.history.back();
+            }
+        }
+        
+        var newValue = newVisits + "|" + expires.getTime();
+        
+        var newCookie = key + "=" + newValue
+            + "; expires=" + expires.toGMTString()
+            + "; path=" + window.location.pathname;
+        document.cookie = newCookie;
+        window.location = decodeURIComponent(parts.url);
     }
     
-    var newVisits = (visits - 0) + 1;
-    if (newVisits > MAX) {
-        if (!confirm("You’ve visited " + url + " " + visits + " times in the last 24 hours, are you sure you want to do it again?")) {
-            window.history.back();
+    function parseUrl () {
+        var parts = {};
+        var params = window.location.search.substring(1);
+        if (params) {
+            var paramParts = params.split('&');
+            var kv;
+            for (var i = 0; i < paramParts.length; i++) {
+                kv = paramParts[i].split('=');
+                parts[kv[0]] = kv[1];
+            }
+        }
+        return parts;
+    }
+    
+    var parts = parseUrl();
+    if (parts.url) {
+        var key = parts.url;
+        var max = (parts.max || 5) - 0;
+        if (parts.nagmark) {
+            var nagmark = window.location.protocol + '//' + window.location.host + '/?url=' + parts.url + '&max=' + max;
+            document.write('<p>Nagmark: <a href="' + nagmark + '">' + nagmark + '</a></p>');
+        } else {
+            setCookieAndRedirect(key, max);
         }
     }
-    
-    var newValue = newVisits + "|" + expires.getTime();
-    var newCookie = key + "=" + newValue
-        + "; expires=" + expires.toGMTString()
-        + "; path=" + window.location.pathname;
-    document.cookie = newCookie;
-    window.location = url;
     </script>
-    </pre>
+    
+    <form>
+        <label for="nagUrl">URL:</label>
+        <input name="url" id="nagUrl">
+        <label for="nagMax">Visits before nag:</label>
+        <input name="max" id="nagMax" value="5">
+        <input type="hidden" name="nagmark" value="1">
+        <input type="submit" value="Nagmark it!">
+    </form>
 </body>
 </html>

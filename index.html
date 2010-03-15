@@ -63,7 +63,7 @@ var parts = parseUrl();
 if (parts.url) {
     var key = parts.url;
     var max = (parts.max || 5) - 0;
-    if (parts.nagmark) {
+    if (parts.preview) {
         var nagmark = window.location.protocol + '//' + window.location.host + '/?url=' + parts.url + '&max=' + max;
         window.onload = function () {
             document.getElementById("nagmark").innerHTML = 'Drag to your bookmarks bar: <a href="' + nagmark + '">' + nagmark + '</a>';
@@ -117,7 +117,7 @@ p#footer {
                 <input name="url" id="nagUrl">
                 <label for="nagMax">Daily visits before nag:</label>
                 <input name="max" id="nagMax" value="5">
-                <input type="hidden" name="nagmark" value="1">
+                <input type="hidden" name="preview" value="1">
                 <input type="submit" value="Nagmark it!">
             </p>
         </form>

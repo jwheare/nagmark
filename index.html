@@ -1,23 +1,22 @@
 <html>
 <body>
     <script>
-function getCookie (name) {
+function getCookies () {
+    var cookieList = {};
     var namekey = name + "=";
     var cookies = document.cookie.split(';');
-    for (var i = 0; i < cookies.length;i++) {
-        var c = cookies[i];
-        while (c.charAt(0) == ' ') {
-            c = c.substring(1, c.length);
-        }
-        if (c.indexOf(namekey) === 0) {
-            return c.substring(namekey.length, c.length);
+    var kv, c;
+    for (var i = 0; i < cookies.length; i++) {
+        if (cookies[i]) {
+            c = cookies[i].replace(/^\s?(.+)\s?$/, '$1');
+            kv = c.split('=');
+            cookieList[kv[0]] = kv[1];
         }
     }
-    return null;
+    return cookieList;
 }
 
-function setCookieAndRedirect (key, max) {
-    var value = getCookie(key);
+function setCookieAndRedirect (key, value, max) {
     var visits = 0;
     var expires = new Date();
     
@@ -31,7 +30,7 @@ function setCookieAndRedirect (key, max) {
     
     var newVisits = (visits - 0) + 1;
     if (newVisits > max) {
-        if (!confirm("You’ve visited " + decodeURIComponent(parts.url) + " " + visits + " times in the last 24 hours, are you sure you want to do it again?")) {
+        if (!confirm("You’ve visited " + decodeURIComponent(key) + " " + visits + " times in the last 24 hours, are you sure you want to do it again?")) {
             window.history.back();
         }
     }
@@ -42,37 +41,83 @@ function setCookieAndRedirect (key, max) {
         + "; expires=" + expires.toGMTString()
         + "; path=" + window.location.pathname;
     document.cookie = newCookie;
-    window.location = decodeURIComponent(parts.url);
+    window.location = decodeURIComponent(key);
 }
 
 function parseUrl () {
-    var parts = {};
+    var urlParts = {};
     var params = window.location.search.substring(1);
     if (params) {
         var paramParts = params.split('&');
         var kv;
         for (var i = 0; i < paramParts.length; i++) {
             kv = paramParts[i].split('=');
-            parts[kv[0]] = kv[1];
+            urlParts[kv[0]] = kv[1];
         }
     }
-    return parts;
+    return urlParts;
 }
 
-var parts = parseUrl();
-if (parts.url) {
-    var key = parts.url;
-    var max = (parts.max || 5) - 0;
-    if (parts.preview) {
-        var nagmark = window.location.protocol + '//' + window.location.host + '/?url=' + parts.url + '&max=' + max;
-        window.onload = function () {
-            document.getElementById("nagmark").innerHTML = 'Drag to your bookmarks bar: <a href="' + nagmark + '">' + nagmark + '</a>';
-            document.getElementById("nagmark").style.display = 'block';
-        };
-    } else {
-        setCookieAndRedirect(key, max);
-    }
+function safe(string) {
+    return string
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
 }
+
+(function () {
+    var urlParts = parseUrl();
+    var cookieList = getCookies();
+
+    if (urlParts.url) {
+        var key = urlParts.url;
+        var max = (urlParts.max || 5) - 0;
+        if (!urlParts.preview) {
+            var value = cookieList[key];
+            setCookieAndRedirect(key, value, max);
+            return;
+        }
+    }
+    
+    window.onload = function () {
+        if (urlParts.preview) {
+            var nagmark = window.location.protocol + '//' + window.location.host + '/?url=' + urlParts.url + '&max=' + max;
+            var container = document.getElementById("nagmark");
+            container.innerHTML = 'Drag to your bookmarks bar: <a href="' + nagmark + '">' + nagmark + '</a>';
+            container.style.display = 'block';
+        }
+        
+        var url, visits, expires, removeExpires, removeCookie, removeOnClick;
+        var nagList = document.getElementById("nagList");
+        var i = 0;
+        for (var k in cookieList) {
+            valueParts = cookieList[k].split("|");
+            url = decodeURIComponent(k);
+            
+            visits = valueParts[0];
+            
+            expires = new Date();
+            expires.setTime(valueParts[1]);
+            
+            removeExpires = new Date();
+            removeExpires.setTime(removeExpires.getTime() - 1);
+            removeCookie = k + '=; expires=' + removeExpires.toGMTString()  + "; path=" + window.location.pathname;
+            removeOnClick = "document.cookie = '" + removeCookie + "'; document.getElementById('nag" + i + "').style.display = 'none'; return false;";
+            
+            nagList.innerHTML += '<tr id="nag' + i + '">'
+                + '<td>' + safe(url) + '</td>'
+                + '<td>' + visits + '</td>'
+                + '<td>' + expires.toGMTString() + '</td>'
+                + '<td><a href="#" onclick="' + removeOnClick + '">x</a></td>'
+            + '</tr>';
+            i++;
+        }
+        if (i) {
+            document.getElementById('nagStatus').style.display = 'block';
+        }
+    };
+})();
     </script>
     
     <style>
@@ -84,7 +129,7 @@ body {
 #content {
     margin: 20px;
 }
-h1, p, form {
+h1, h2, p, form, table {
     margin: 15px 0;
 }
 h1 {
@@ -104,6 +149,20 @@ p#footer {
     border-top: 1px solid #82BFDD;
     padding-top: 10px;
 }
+#nagStatus {
+    display: none;
+}
+table {
+    margin: -10px;
+}
+td, th {
+    padding: 5px 10px;
+    text-align: left;
+}
+th {
+    padding: 3px 10px;
+    border-bottom: 1px solid #D4D4D4;
+}
     </style>
     
     <div id="content">
@@ -122,6 +181,21 @@ p#footer {
                 <input type="submit" value="Nagmark it!">
             </p>
         </form>
+        
+        <div id="nagStatus">
+            <h2>Status</h2>
+            <table border="0" cellspacing="0" cellpadding="0">
+                <thead>
+                    <tr>
+                        <th>URL</th>
+                        <th>Visits</th>
+                        <th>Expires</th>
+                        <th>Reset</th>
+                    </tr>
+                </thead>
+                <tbody id="nagList"></tbody>
+            </table>
+        </div>
         
         <p id="footer">Made by <a href="http://jouire.com/">James Wheare</a> | <a href="http://github.com/jwheare/nagmark">Source code on GitHub</a> (also View Source)</p>
     </div>

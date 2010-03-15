@@ -10,7 +10,7 @@ function getCookies () {
         if (cookies[i]) {
             c = cookies[i].replace(/^\s?(.+)\s?$/, '$1');
             kv = c.split('=');
-            if (kv[0].indexOf('__ut') -== -1) {
+            if (kv[0].indexOf('__ut') !== -1) {
                 cookieList[kv[0]] = kv[1];
             }
         }
@@ -34,6 +34,7 @@ function setCookieAndRedirect (key, value, max) {
     if (newVisits > max) {
         if (!confirm("You’ve visited " + decodeURIComponent(key) + " " + visits + " times in the last 24 hours, are you sure you want to do it again?")) {
             window.history.back();
+            return;
         }
     }
     

@@ -1,84 +1,128 @@
 <html>
 <body>
     <script>
-    function getCookie (name) {
-        var namekey = name + "=";
-        var cookies = document.cookie.split(';');
-        for (var i = 0; i < cookies.length;i++) {
-            var c = cookies[i];
-            while (c.charAt(0) == ' ') {
-                c = c.substring(1, c.length);
-            }
-            if (c.indexOf(namekey) === 0) {
-                return c.substring(namekey.length, c.length);
-            }
+function getCookie (name) {
+    var namekey = name + "=";
+    var cookies = document.cookie.split(';');
+    for (var i = 0; i < cookies.length;i++) {
+        var c = cookies[i];
+        while (c.charAt(0) == ' ') {
+            c = c.substring(1, c.length);
         }
-        return null;
+        if (c.indexOf(namekey) === 0) {
+            return c.substring(namekey.length, c.length);
+        }
+    }
+    return null;
+}
+
+function setCookieAndRedirect (key, max) {
+    var value = getCookie(key);
+    var visits = 0;
+    var expires = new Date();
+    
+    if (value) {
+        valueParts = value.split("|");
+        visits = valueParts[0];
+        expires.setTime(valueParts[1]);
+    } else {
+        expires.setTime(expires.getTime() + (24*60*60*1000));
     }
     
-    function setCookieAndRedirect (key, max) {
-        var value = getCookie(key);
-        var visits = 0;
-        var expires = new Date();
-        
-        if (value) {
-            valueParts = value.split("|");
-            visits = valueParts[0];
-            expires.setTime(valueParts[1]);
-        } else {
-            expires.setTime(expires.getTime() + (24*60*60*1000));
+    var newVisits = (visits - 0) + 1;
+    if (newVisits > max) {
+        if (!confirm("You’ve visited " + decodeURIComponent(parts.url) + " " + visits + " times in the last 24 hours, are you sure you want to do it again?")) {
+            window.history.back();
         }
-        
-        var newVisits = (visits - 0) + 1;
-        if (newVisits > max) {
-            if (!confirm("You’ve visited " + decodeURIComponent(parts.url) + " " + visits + " times in the last 24 hours, are you sure you want to do it again?")) {
-                window.history.back();
-            }
-        }
-        
-        var newValue = newVisits + "|" + expires.getTime();
-        
-        var newCookie = key + "=" + newValue
-            + "; expires=" + expires.toGMTString()
-            + "; path=" + window.location.pathname;
-        document.cookie = newCookie;
-        window.location = decodeURIComponent(parts.url);
     }
     
-    function parseUrl () {
-        var parts = {};
-        var params = window.location.search.substring(1);
-        if (params) {
-            var paramParts = params.split('&');
-            var kv;
-            for (var i = 0; i < paramParts.length; i++) {
-                kv = paramParts[i].split('=');
-                parts[kv[0]] = kv[1];
-            }
-        }
-        return parts;
-    }
+    var newValue = newVisits + "|" + expires.getTime();
     
-    var parts = parseUrl();
-    if (parts.url) {
-        var key = parts.url;
-        var max = (parts.max || 5) - 0;
-        if (parts.nagmark) {
-            var nagmark = window.location.protocol + '//' + window.location.host + '/?url=' + parts.url + '&max=' + max;
-            document.write('<p>Nagmark: <a href="' + nagmark + '">' + nagmark + '</a></p>');
-        } else {
-            setCookieAndRedirect(key, max);
+    var newCookie = key + "=" + newValue
+        + "; expires=" + expires.toGMTString()
+        + "; path=" + window.location.pathname;
+    document.cookie = newCookie;
+    window.location = decodeURIComponent(parts.url);
+}
+
+function parseUrl () {
+    var parts = {};
+    var params = window.location.search.substring(1);
+    if (params) {
+        var paramParts = params.split('&');
+        var kv;
+        for (var i = 0; i < paramParts.length; i++) {
+            kv = paramParts[i].split('=');
+            parts[kv[0]] = kv[1];
         }
     }
+    return parts;
+}
+
+var parts = parseUrl();
+if (parts.url) {
+    var key = parts.url;
+    var max = (parts.max || 5) - 0;
+    if (parts.nagmark) {
+        var nagmark = window.location.protocol + '//' + window.location.host + '/?url=' + parts.url + '&max=' + max;
+        window.onload = function () {
+            document.getElementById("nagmark").innerHTML = 'Drag to your bookmarks bar: <a href="' + nagmark + '">' + nagmark + '</a>';
+            document.getElementById("nagmark").style.display = 'block';
+        };
+    } else {
+        setCookieAndRedirect(key, max);
+    }
+}
     </script>
     
-    <form>
-        <label for="nagUrl">URL:</label>
-        <input name="url" id="nagUrl">
-        <label for="nagMax">Daily visits before nag:</label>
-        <input name="max" id="nagMax" value="5">
-        <input type="hidden" name="nagmark" value="1">
-        <input type="submit" value="Nagmark it!">
-    </form>
+    <style>
+body {
+    margin: 0;
+    padding: 0;
+    font: normal 1em "Helvetica", "Arial", sans-serif;
+}
+#content {
+    margin: 20px;
+}
+h1, p, form {
+    margin: 15px 0;
+}
+h1 {
+    font-size: 2em;
+}
+p#subtitle {
+    font-size: 1.5em;
+}
+p#nagmark {
+    display: none;
+    margin: 0 -10px;
+    padding: 10px;
+    background: #ffa;
+}
+p#footer {
+    border-top: 1px solid #82BFDD;
+    padding-top: 10px;
+}
+    </style>
+    
+    <div id="content">
+        <p id="nagmark"></p>
+        
+        <h1>Nagmark</h1>
+        <p id="subtitle">Make bookmarks that nag you when you visit them too much.</p>
+        
+        <form>
+            <p>
+                <label for="nagUrl">URL:</label>
+                <input name="url" id="nagUrl">
+                <label for="nagMax">Daily visits before nag:</label>
+                <input name="max" id="nagMax" value="5">
+                <input type="hidden" name="nagmark" value="1">
+                <input type="submit" value="Nagmark it!">
+            </p>
+        </form>
+        
+        <p id="footer">Made by <a href="http://jouire.com/">James Wheare</a> | <a href="http://github.com/jwheare/nagmark">Source code on GitHub</a></p>
+    </div>
 </body>
 </html>

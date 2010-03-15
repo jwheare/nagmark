@@ -1,6 +1,7 @@
 <html>
 <body>
     <script>
+wellDone = false;
 function getCookies () {
     var cookieList = {};
     var namekey = name + "=";
@@ -33,8 +34,8 @@ function setCookieAndRedirect (key, value, max) {
     var newVisits = (visits - 0) + 1;
     if (newVisits > max) {
         if (!confirm("You’ve visited " + decodeURIComponent(key) + " " + visits + " times in the last 24 hours, are you sure you want to do it again?")) {
-            window.history.back();
-            return;
+            wellDone = true;
+            return false;
         }
     }
     
@@ -45,6 +46,7 @@ function setCookieAndRedirect (key, value, max) {
         + "; path=" + window.location.pathname;
     document.cookie = newCookie;
     window.location = decodeURIComponent(key);
+    return true;
 }
 
 function parseUrl () {
@@ -78,12 +80,16 @@ function safe(string) {
         var max = (urlParts.max || 5) - 0;
         if (!urlParts.preview) {
             var value = cookieList[key];
-            setCookieAndRedirect(key, value, max);
-            return;
+            if (setCookieAndRedirect(key, value, max)) {
+                return;
+            }
         }
     }
     
     window.onload = function () {
+        if (wellDone) {
+            document.getElementById('wellDone').style.display = 'block';
+        }
         if (urlParts.preview) {
             var nagmark = window.location.protocol + '//' + window.location.host + '/?url=' + urlParts.url + '&max=' + max;
             var container = document.getElementById("nagmark");
@@ -142,6 +148,9 @@ h1 {
 p#subtitle {
     font-size: 1.5em;
 }
+#wellDone {
+    display: none;
+}
 p#nagmark {
     display: none;
     margin: 0 -10px;
@@ -169,6 +178,10 @@ th {
     </style>
     
     <div id="content">
+        <div id="wellDone">
+            <h2>Such self restraint, well done!</h2>
+            <img src="clap.jpg" width="400" height="256" alt="Bunny clapping">
+        </div>
         <p id="nagmark"></p>
         
         <h1>Nagmark</h1>

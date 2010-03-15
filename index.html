@@ -10,7 +10,7 @@ function getCookies () {
         if (cookies[i]) {
             c = cookies[i].replace(/^\s?(.+)\s?$/, '$1');
             kv = c.split('=');
-            if (kv[0].indexOf('__ut') !== -1) {
+            if (kv[0].indexOf('__ut') === -1) {
                 cookieList[kv[0]] = kv[1];
             }
         }
